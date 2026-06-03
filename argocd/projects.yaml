@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: shop-platform
+  namespace: argocd
+  # Empêche la suppression accidentelle du projet tant que des apps en dépendent.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Projet ArgoCD pour la plateforme e-commerce (microservices sur EKS).
+
+  # Seul ce dépôt Git est autorisé comme source.
+  sourceRepos:
+    - https://github.com/CHANGE_ME/03-eks-microservices-gitops.git
+
+  # Destinations autorisées : uniquement les namespaces métier de ce cluster.
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: api-gateway
+    - server: https://kubernetes.default.svc
+      namespace: orders
+    - server: https://kubernetes.default.svc
+      namespace: payments
+    - server: https://kubernetes.default.svc
+      namespace: frontend
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+
+  # Ressources cluster-scoped autorisées (création de namespaces via syncOptions).
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+
+  # Ressources namespace-scoped autorisées (liste blanche explicite).
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: apps
+      kind: Deployment
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: argoproj.io
+      kind: Application
+
+  # Fenêtre d'orchestration : interdit la synchro auto en dehors des heures
+  # ouvrées sur payments (exemple de garde-fou). Vide = pas de restriction.
+  syncWindows: []

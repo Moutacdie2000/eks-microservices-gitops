@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-gateway
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: shop-platform
+
+  source:
+    repoURL: https://github.com/CHANGE_ME/03-eks-microservices-gitops.git
+    targetRevision: main
+    path: charts/service-chart
+    helm:
+      releaseName: api-gateway
+      # Valeurs surchargeant celles du chart générique. Le tag d'image est
+      # bumpé par la CI (commit GitOps) → déclenche la synchro ArgoCD.
+      values: |
+        nameOverride: api-gateway
+        fullnameOverride: api-gateway
+        image:
+          repository: <ACCOUNT_ID>.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/api-gateway
+          tag: v0.1.0
+        containerPort: 8080
+        service:
+          port: 80
+        env:
+          - name: ORDERS_URL
+            value: http://orders.orders.svc.cluster.local:80
+          - name: PAYMENTS_URL
+            value: http://payments.payments.svc.cluster.local:80
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 10
+          targetCPUUtilizationPercentage: 60
+        ingress:
+          enabled: true
+          className: alb
+          annotations:
+            alb.ingress.kubernetes.io/scheme: internet-facing
+            alb.ingress.kubernetes.io/target-type: ip
+            alb.ingress.kubernetes.io/healthcheck-path: /health
+            alb.ingress.kubernetes.io/group.name: shop-platform
+          hosts:
+            - host: api.shop.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: api-gateway
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

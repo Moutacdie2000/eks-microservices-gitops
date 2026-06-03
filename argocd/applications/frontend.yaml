@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: frontend
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: shop-platform
+
+  source:
+    repoURL: https://github.com/CHANGE_ME/03-eks-microservices-gitops.git
+    targetRevision: main
+    path: charts/service-chart
+    helm:
+      releaseName: frontend
+      values: |
+        nameOverride: frontend
+        fullnameOverride: frontend
+        image:
+          repository: <ACCOUNT_ID>.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/frontend
+          tag: v0.1.0
+        containerPort: 8080
+        service:
+          port: 80
+        env:
+          - name: API_BASE_URL
+            value: https://api.shop.example.com/api
+        autoscaling:
+          enabled: true
+          minReplicas: 2
+          maxReplicas: 8
+          targetCPUUtilizationPercentage: 65
+        ingress:
+          enabled: true
+          className: alb
+          annotations:
+            alb.ingress.kubernetes.io/scheme: internet-facing
+            alb.ingress.kubernetes.io/target-type: ip
+            alb.ingress.kubernetes.io/healthcheck-path: /health
+            alb.ingress.kubernetes.io/group.name: shop-platform
+          hosts:
+            - host: shop.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: frontend
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

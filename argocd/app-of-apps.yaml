@@ -1,0 +1,32 @@
+# Application « racine » du pattern app-of-apps.
+# Elle ne déploie pas de charge applicative directement : elle synchronise le
+# répertoire argocd/applications/, qui contient une Application ArgoCD par
+# microservice. ArgoCD crée donc d'abord cette app, qui crée à son tour les
+# autres apps (et qui les maintient en état désiré).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: shop-platform
+
+  source:
+    repoURL: https://github.com/CHANGE_ME/03-eks-microservices-gitops.git
+    targetRevision: main
+    path: argocd/applications
+    directory:
+      recurse: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true      # supprime les ressources retirées du Git
+      selfHeal: true   # corrige toute dérive manuelle vs l'état Git
+    syncOptions:
+      - CreateNamespace=true
