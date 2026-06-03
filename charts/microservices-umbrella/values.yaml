@@ -1,0 +1,169 @@
+# Valeurs de l'umbrella. Chaque bloc (clé = alias de la dépendance) est passé
+# tel quel au sous-chart service-chart correspondant.
+#
+# NOTE : remplacez <ACCOUNT_ID> et la région par les sorties Terraform
+# (output ecr_repository_urls). Les tags d'image sont bumpés automatiquement
+# par la CI (commit GitOps) — voir .github/workflows/ci.yml.
+
+# ---------------------------------------------------------------------------
+# api-gateway — exposé publiquement, route vers orders et payments.
+# ---------------------------------------------------------------------------
+api-gateway:
+  enabled: true
+  nameOverride: api-gateway
+  fullnameOverride: api-gateway
+  replicaCount: 2
+  image:
+    repository: <ACCOUNT_ID>.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/api-gateway
+    tag: v0.1.0
+  containerPort: 8080
+  service:
+    port: 80
+  env:
+    - name: ORDERS_URL
+      value: http://orders:80
+    - name: PAYMENTS_URL
+      value: http://payments:80
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+  ingress:
+    enabled: true
+    className: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/healthcheck-path: /health
+      alb.ingress.kubernetes.io/group.name: shop-platform
+    hosts:
+      - host: api.shop.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+  networkPolicy:
+    enabled: true
+    ingressFrom:
+      - namespaceSelector: {}     # autorise l'ALB controller / autres namespaces
+    egressTo:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: orders
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: payments
+
+# ---------------------------------------------------------------------------
+# orders — service interne (FastAPI, port 8000).
+# ---------------------------------------------------------------------------
+orders:
+  enabled: true
+  nameOverride: orders
+  fullnameOverride: orders
+  replicaCount: 2
+  image:
+    repository: <ACCOUNT_ID>.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/orders
+    tag: v0.1.0
+  containerPort: 8000
+  service:
+    port: 80
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 60
+  ingress:
+    enabled: false
+  networkPolicy:
+    enabled: true
+    ingressFrom:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: api-gateway
+
+# ---------------------------------------------------------------------------
+# payments — service interne (FastAPI, port 8000) + IRSA pour Secrets Manager.
+# ---------------------------------------------------------------------------
+payments:
+  enabled: true
+  nameOverride: payments
+  fullnameOverride: payments
+  replicaCount: 2
+  image:
+    repository: <ACCOUNT_ID>.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/payments
+    tag: v0.1.0
+  containerPort: 8000
+  service:
+    port: 80
+  serviceAccount:
+    create: true
+    name: payments
+    # ARN issu de l'output Terraform payments_role_arn.
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/shop-platform-dev-payments
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    fsGroup: 999
+    seccompProfile:
+      type: RuntimeDefault
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 12
+    targetCPUUtilizationPercentage: 60
+  ingress:
+    enabled: false
+  networkPolicy:
+    enabled: true
+    ingressFrom:
+      - podSelector:
+          matchLabels:
+            app.kubernetes.io/name: api-gateway
+
+# ---------------------------------------------------------------------------
+# frontend — exposé publiquement (Node/Express, port 8080).
+# ---------------------------------------------------------------------------
+frontend:
+  enabled: true
+  nameOverride: frontend
+  fullnameOverride: frontend
+  replicaCount: 2
+  image:
+    repository: <ACCOUNT_ID>.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/frontend
+    tag: v0.1.0
+  containerPort: 8080
+  service:
+    port: 80
+  env:
+    - name: API_BASE_URL
+      value: https://api.shop.example.com/api
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 65
+  ingress:
+    enabled: true
+    className: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/healthcheck-path: /health
+      alb.ingress.kubernetes.io/group.name: shop-platform
+    hosts:
+      - host: shop.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+  networkPolicy:
+    enabled: true
+    ingressFrom:
+      - namespaceSelector: {}

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: service-chart
+description: >-
+  Chart Helm générique et paramétrable pour déployer un microservice
+  stateless sur Kubernetes (Deployment, Service, HPA, Ingress).
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Ton nom

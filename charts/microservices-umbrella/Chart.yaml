@@ -1,0 +1,36 @@
+apiVersion: v2
+name: microservices-umbrella
+description: >-
+  Chart « umbrella » qui agrège les 4 microservices de la plateforme
+  (api-gateway, orders, payments, frontend) en réutilisant le chart générique
+  service-chart via des alias. Sert de cible unique pour un déploiement complet.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Ton nom
+
+# Chaque dépendance pointe vers le même chart générique local, avec un alias
+# différent. Les valeurs par service sont fournies sous la clé de l'alias
+# dans values.yaml. La condition <alias>.enabled permet d'activer/désactiver.
+dependencies:
+  - name: service-chart
+    version: "0.1.0"
+    repository: "file://../service-chart"
+    alias: api-gateway
+    condition: api-gateway.enabled
+  - name: service-chart
+    version: "0.1.0"
+    repository: "file://../service-chart"
+    alias: orders
+    condition: orders.enabled
+  - name: service-chart
+    version: "0.1.0"
+    repository: "file://../service-chart"
+    alias: payments
+    condition: payments.enabled
+  - name: service-chart
+    version: "0.1.0"
+    repository: "file://../service-chart"
+    alias: frontend
+    condition: frontend.enabled

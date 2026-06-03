@@ -1,0 +1,109 @@
+# Valeurs par défaut du chart générique « service-chart ».
+# Chaque microservice surcharge ces valeurs via le chart umbrella.
+
+# Nom logique du service (sert au nommage des ressources et des labels).
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 2
+
+image:
+  repository: ""        # ex: 123456789012.dkr.ecr.eu-west-3.amazonaws.com/shop-platform/orders
+  tag: "v0.1.0"         # tag bumpé automatiquement par la CI (commit GitOps)
+  pullPolicy: IfNotPresent
+
+# Port exposé par le conteneur ET par le Service.
+containerPort: 8080
+
+service:
+  type: ClusterIP
+  port: 80
+
+# ServiceAccount — annoter avec un rôle IRSA pour donner des droits AWS au pod.
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  # eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/<role>
+
+# Demandes/limites de ressources (obligatoires pour que le HPA fonctionne).
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# Sondes de santé.
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Autoscaling horizontal piloté par la cible d'utilisation CPU.
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 60
+  # targetMemoryUtilizationPercentage: 75  # optionnel
+
+# Ingress (ALB via AWS Load Balancer Controller). Activé seulement pour les
+# services exposés publiquement (frontend, api-gateway).
+ingress:
+  enabled: false
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Contexte de sécurité durci : non-root, système de fichiers en lecture seule.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Variables d'environnement additionnelles.
+env: []
+  # - name: ORDERS_URL
+  #   value: http://orders:80
+
+# Étalement des pods sur les nœuds/zones pour la résilience.
+topologySpreadEnabled: true
+
+# NetworkPolicy — segmentation réseau (déni par défaut + autorisations explicites).
+networkPolicy:
+  enabled: true
+  # Sources autorisées en entrée. Par défaut : tout pod du même namespace.
+  ingressFrom:
+    - podSelector: {}
+  # Destinations autorisées en sortie (en plus du DNS, toujours permis).
+  egressTo: []
+    # - podSelector:
+    #     matchLabels:
+    #       app.kubernetes.io/name: payments
