@@ -1,0 +1,57 @@
+# ----- Terraform -----
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+backend.hcl
+
+# ----- Node.js -----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.npm/
+dist/
+build/
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# ----- Helm -----
+charts/**/charts/
+charts/**/Chart.lock
+*.tgz
+
+# ----- Kubernetes / kubeconfig -----
+kubeconfig
+*.kubeconfig
+
+# ----- Secrets & credentials -----
+.env
+.env.*
+*.pem
+*.key
+secrets.yaml
+
+# ----- Outils & IDE -----
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# ----- Résultats de tests/scans -----
+trivy-results.*
+k6-results.*
