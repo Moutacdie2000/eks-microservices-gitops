@@ -1,4 +1,4 @@
-# Makefile — orchestration du cycle de vie du projet EKS / GitOps.
+# Makefile, orchestration du cycle de vie du projet EKS / GitOps.
 #
 # Variables surchargeables : make tf-apply AWS_REGION=eu-west-1 CLUSTER_NAME=...
 

@@ -1,4 +1,4 @@
-name: CI — build, scan & push (GitOps)
+name: CI, build, scan & push (GitOps)
 
 # Pattern GitOps : la CI construit, teste, scanne et pousse les images sur ECR,
 # puis MET À JOUR GIT (bump du tag d'image dans les values Helm). Le déploiement

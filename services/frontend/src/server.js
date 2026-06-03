@@ -23,7 +23,7 @@ app.get("/", (_req, res) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Shop Platform — Démo GitOps</title>
+    <title>Shop Platform, Démo GitOps</title>
     <style>
       body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 720px; line-height: 1.5; }
       button { padding: 0.5rem 1rem; cursor: pointer; }

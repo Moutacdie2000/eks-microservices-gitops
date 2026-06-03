@@ -19,7 +19,7 @@ service:
   type: ClusterIP
   port: 80
 
-# ServiceAccount — annoter avec un rôle IRSA pour donner des droits AWS au pod.
+# ServiceAccount, annoter avec un rôle IRSA pour donner des droits AWS au pod.
 serviceAccount:
   create: true
   name: ""
@@ -96,7 +96,7 @@ env: []
 # Étalement des pods sur les nœuds/zones pour la résilience.
 topologySpreadEnabled: true
 
-# NetworkPolicy — segmentation réseau (déni par défaut + autorisations explicites).
+# NetworkPolicy, segmentation réseau (déni par défaut + autorisations explicites).
 networkPolicy:
   enabled: true
   # Sources autorisées en entrée. Par défaut : tout pod du même namespace.

@@ -1,4 +1,4 @@
-"""Microservice payments — autorisation minimale de paiements (FastAPI)."""
+"""Microservice payments, autorisation minimale de paiements (FastAPI)."""
 from __future__ import annotations
 
 import os

@@ -3,10 +3,10 @@
 #
 # NOTE : remplacez <ACCOUNT_ID> et la région par les sorties Terraform
 # (output ecr_repository_urls). Les tags d'image sont bumpés automatiquement
-# par la CI (commit GitOps) — voir .github/workflows/ci.yml.
+# par la CI (commit GitOps), voir .github/workflows/ci.yml.
 
 # ---------------------------------------------------------------------------
-# api-gateway — exposé publiquement, route vers orders et payments.
+# api-gateway, exposé publiquement, route vers orders et payments.
 # ---------------------------------------------------------------------------
 api-gateway:
   enabled: true
@@ -55,7 +55,7 @@ api-gateway:
             app.kubernetes.io/name: payments
 
 # ---------------------------------------------------------------------------
-# orders — service interne (FastAPI, port 8000).
+# orders, service interne (FastAPI, port 8000).
 # ---------------------------------------------------------------------------
 orders:
   enabled: true
@@ -89,7 +89,7 @@ orders:
             app.kubernetes.io/name: api-gateway
 
 # ---------------------------------------------------------------------------
-# payments — service interne (FastAPI, port 8000) + IRSA pour Secrets Manager.
+# payments, service interne (FastAPI, port 8000) + IRSA pour Secrets Manager.
 # ---------------------------------------------------------------------------
 payments:
   enabled: true
@@ -129,7 +129,7 @@ payments:
             app.kubernetes.io/name: api-gateway
 
 # ---------------------------------------------------------------------------
-# frontend — exposé publiquement (Node/Express, port 8080).
+# frontend, exposé publiquement (Node/Express, port 8080).
 # ---------------------------------------------------------------------------
 frontend:
   enabled: true

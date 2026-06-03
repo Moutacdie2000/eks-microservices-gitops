@@ -1,4 +1,4 @@
-"""Microservice orders — gestion minimale des commandes (FastAPI)."""
+"""Microservice orders, gestion minimale des commandes (FastAPI)."""
 from __future__ import annotations
 
 import os

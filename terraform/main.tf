@@ -15,7 +15,7 @@ locals {
 }
 
 ################################################################################
-# VPC — module officiel terraform-aws-modules/vpc
+# VPC, module officiel terraform-aws-modules/vpc
 ################################################################################
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
@@ -42,7 +42,7 @@ module "vpc" {
 }
 
 ################################################################################
-# EKS — module officiel terraform-aws-modules/eks
+# EKS, module officiel terraform-aws-modules/eks
 ################################################################################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
@@ -113,7 +113,7 @@ module "eks" {
 }
 
 ################################################################################
-# IRSA — rôles IAM associés à des ServiceAccounts Kubernetes
+# IRSA, rôles IAM associés à des ServiceAccounts Kubernetes
 ################################################################################
 
 # Rôle pour le driver EBS CSI (snapshots/volumes persistants).
@@ -149,7 +149,7 @@ module "aws_lb_controller_irsa" {
 }
 
 # Exemple de rôle applicatif IRSA : le service "payments" peut lire des secrets
-# dans AWS Secrets Manager (préfixe restreint) — illustre le moindre privilège.
+# dans AWS Secrets Manager (préfixe restreint), illustre le moindre privilège.
 data "aws_iam_policy_document" "payments_secrets" {
   statement {
     sid    = "ReadPaymentsSecrets"
@@ -189,7 +189,7 @@ resource "aws_iam_policy" "payments_secrets" {
 }
 
 ################################################################################
-# ECR — un dépôt par microservice
+# ECR, un dépôt par microservice
 ################################################################################
 module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"

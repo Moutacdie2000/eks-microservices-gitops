@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ############################
-# Étape 1 — build des dépendances dans un venv
+# Étape 1, build des dépendances dans un venv
 ############################
 FROM python:3.12-slim AS builder
 WORKDIR /app
@@ -15,7 +15,7 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install -r requirements.txt
 
 ############################
-# Étape 2 — runtime
+# Étape 2, runtime
 ############################
 FROM python:3.12-slim AS runtime
 ENV PATH="/opt/venv/bin:$PATH" \

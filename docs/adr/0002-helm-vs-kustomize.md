@@ -1,4 +1,4 @@
-# ADR 0002 — Helm plutôt que Kustomize pour empaqueter les microservices
+# ADR 0002, Helm plutôt que Kustomize pour empaqueter les microservices
 
 - **Statut** : Accepté
 - **Date** : 2026-06-03
@@ -21,7 +21,7 @@ les charts nativement (support Helm intégré).
 
 ## Options envisagées
 
-### Option A — Kustomize (base + overlays)
+### Option A, Kustomize (base + overlays)
 
 - **Avantages** : natif `kubectl` ; pas de moteur de templating (patch YAML pur) ;
   approche déclarative appréciée pour la simplicité.
@@ -33,7 +33,7 @@ les charts nativement (support Helm intégré).
   - la logique conditionnelle (activer un Ingress seulement pour le frontend)
     devient verbeuse en overlays.
 
-### Option B — Helm (chart générique paramétré) — **retenue**
+### Option B, Helm (chart générique paramétré), **retenue**
 
 - **Avantages** :
   - **un seul chart** factorise tout le boilerplate ; chaque service ne fournit
@@ -47,7 +47,7 @@ les charts nativement (support Helm intégré).
   - templating Go parfois verbeux et sujet à des erreurs d'indentation YAML ;
   - une couche d'abstraction supplémentaire à maîtriser.
 
-### Option C — Helm + Kustomize (post-rendering)
+### Option C, Helm + Kustomize (post-rendering)
 
 - Combinaison possible (rendre avec Helm puis patcher avec Kustomize). Écartée
   ici : complexité non justifiée pour quatre services homogènes.

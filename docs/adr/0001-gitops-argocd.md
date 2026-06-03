@@ -1,4 +1,4 @@
-# ADR 0001 — GitOps via ArgoCD plutôt qu'un déploiement impératif
+# ADR 0001, GitOps via ArgoCD plutôt qu'un déploiement impératif
 
 - **Statut** : Accepté
 - **Date** : 2026-06-03
@@ -25,7 +25,7 @@ cluster Kubernetes.
 
 ## Options envisagées
 
-### Option A — `kubectl`/`helm` depuis la CI (push)
+### Option A, `kubectl`/`helm` depuis la CI (push)
 
 - **Avantages** : simple à mettre en place ; pas d'outil supplémentaire à opérer ;
   déploiement immédiat et linéaire dans les logs du pipeline.
@@ -36,7 +36,7 @@ cluster Kubernetes.
   - pas de réconciliation continue ni de garantie d'état ;
   - rollback = relancer un ancien pipeline, sans vue claire de l'état désiré.
 
-### Option B — GitOps avec ArgoCD (pull) — **retenue**
+### Option B, GitOps avec ArgoCD (pull), **retenue**
 
 - **Avantages** :
   - **aucun credential cluster dans la CI** : ArgoCD tire depuis Git de
@@ -51,7 +51,7 @@ cluster Kubernetes.
   - léger délai de propagation (polling/webhook) vs un apply immédiat ;
   - courbe d'apprentissage (Applications, Projects, sync policies).
 
-### Option C — Flux CD
+### Option C, Flux CD
 
 - Alternative GitOps crédible et équivalente sur le fond. Écartée ici au profit
   d'ArgoCD pour son **UI** pédagogique (utile en démo de portfolio) et la

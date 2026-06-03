@@ -31,12 +31,12 @@ app.use((req, res, next) => {
 });
 
 // --- Sondes de santé ---
-// /health : liveness — le process répond.
+// /health : liveness, le process répond.
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok", service: "api-gateway" });
 });
 
-// /ready : readiness — prêt à recevoir du trafic.
+// /ready : readiness, prêt à recevoir du trafic.
 app.get("/ready", (_req, res) => {
   res.status(200).json({ status: "ready", service: "api-gateway" });
 });

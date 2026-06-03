@@ -28,9 +28,9 @@ export const options = {
       startVUs: 0,
       stages: [
         { duration: "1m", target: 50 },   // montée
-        { duration: "2m", target: 150 },  // pic — doit déclencher le scale-up
-        { duration: "3m", target: 150 },  // palier — HPA stabilise les répliques
-        { duration: "2m", target: 0 },    // descente — observer le scale-down
+        { duration: "2m", target: 150 },  // pic, doit déclencher le scale-up
+        { duration: "3m", target: 150 },  // palier, HPA stabilise les répliques
+        { duration: "2m", target: 0 },    // descente, observer le scale-down
       ],
       gracefulRampDown: "30s",
     },

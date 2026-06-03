@@ -10,7 +10,7 @@ synchronisation GitOps assurée par ArgoCD.
 flowchart LR
     Dev([Développeur]) -->|git push| GH[(Dépôt GitHub<br/>code + manifests)]
 
-    subgraph CI["CI — GitHub Actions (push)"]
+    subgraph CI["CI, GitHub Actions (push)"]
         direction TB
         Build[Build image<br/>Docker Buildx] --> Test[Tests unitaires]
         Test --> Scan{Scan Trivy<br/>HIGH/CRITICAL ?}
@@ -23,7 +23,7 @@ flowchart LR
     Bump -->|commit GitOps| GH
     Push --> ECR[(Amazon ECR<br/>images immutables)]
 
-    subgraph CD["CD — GitOps (pull)"]
+    subgraph CD["CD, GitOps (pull)"]
         Argo[ArgoCD<br/>app-of-apps]
     end
 
@@ -51,7 +51,7 @@ La distinction centrale de ce projet est la séparation stricte entre **CI** et
 | Intégration (CI) | GitHub Actions | build, test, scan, push d'image, **écriture dans Git** |
 | Déploiement (CD) | ArgoCD | **lecture de Git** et réconciliation du cluster |
 
-### Modèle « push » (déploiement impératif — ce qu'on N'utilise PAS)
+### Modèle « push » (déploiement impératif, ce qu'on N'utilise PAS)
 
 Dans un modèle push classique, le pipeline CI dispose d'identifiants vers le
 cluster et exécute `kubectl apply` / `helm upgrade` directement. Inconvénients :
@@ -61,7 +61,7 @@ cluster et exécute `kubectl apply` / `helm upgrade` directement. Inconvénients
 - pas de réconciliation continue : une modification manuelle (`kubectl edit`)
   persiste jusqu'au prochain déploiement.
 
-### Modèle « pull » (GitOps — ce qu'on utilise ici)
+### Modèle « pull » (GitOps, ce qu'on utilise ici)
 
 ArgoCD s'exécute **dans le cluster** et **tire** (pull) en continu l'état désiré
 depuis Git. Le dépôt Git est l'unique source de vérité.

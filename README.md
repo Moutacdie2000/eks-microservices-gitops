@@ -12,7 +12,7 @@ supply-chain (scan d'images Trivy bloquant).*
 ![Trivy](https://img.shields.io/badge/Security-Trivy-1904DA?logo=aquasecurity&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
-> **Contexte** — Ce dépôt fait partie d'un portfolio d'ingénieur DevOps / AWS
+> **Contexte**, Ce dépôt fait partie d'un portfolio d'ingénieur DevOps / AWS
 > Solutions Architect. Il démontre la maîtrise des conteneurs, de l'orchestration
 > Kubernetes (EKS), du modèle GitOps (pull-based) et de la sécurité de la chaîne
 > d'approvisionnement logicielle. L'infrastructure est entièrement décrite en
@@ -67,7 +67,7 @@ Le détail (diagrammes, app-of-apps, composants) est dans
 flowchart LR
     Dev([Développeur]) -->|git push| GH[(GitHub<br/>code + manifests)]
 
-    subgraph CI["CI — GitHub Actions"]
+    subgraph CI["CI, GitHub Actions"]
         Build[Build] --> Scan{Trivy<br/>HIGH/CRITICAL ?}
         Scan -->|propre| Push[Push -> ECR]
         Push --> Bump[Bump tag<br/>dans Git]
@@ -214,58 +214,58 @@ récupérez son nom DNS et pointez vos enregistrements `shop.example.com` /
 
 ## 🔑 Points clés d'implémentation
 
-- **GitOps pull-based** — ArgoCD s'exécute dans le cluster et tire l'état désiré
+- **GitOps pull-based**, ArgoCD s'exécute dans le cluster et tire l'état désiré
   depuis Git. La CI n'écrit que dans Git ; elle ne déploie jamais directement.
   Sync policy `automated` + `prune` + `selfHeal`.
-- **Pattern app-of-apps** — une `Application` racine
+- **Pattern app-of-apps**, une `Application` racine
   ([`argocd/app-of-apps.yaml`](argocd/app-of-apps.yaml)) synchronise le dossier
   `argocd/applications/`, qui contient une `Application` par service. Ajouter un
   service = ajouter un YAML et committer.
-- **Chart Helm générique** — un unique [`charts/service-chart`](charts/service-chart)
+- **Chart Helm générique**, un unique [`charts/service-chart`](charts/service-chart)
   paramétré par `values` couvre les 4 services (DRY). Voir
   [ADR 0002](docs/adr/0002-helm-vs-kustomize.md).
-- **IRSA** — provider OIDC activé sur EKS ; le service `payments` assume un rôle
+- **IRSA**, provider OIDC activé sur EKS ; le service `payments` assume un rôle
   IAM lui donnant un accès **restreint** à ses secrets (`secretsmanager` sur un
   préfixe ARN dédié). Le ServiceAccount est annoté avec l'ARN du rôle.
-- **HPA** — chaque déploiement définit des `requests`/`limits` CPU, condition
+- **HPA**, chaque déploiement définit des `requests`/`limits` CPU, condition
   nécessaire au HPA. Cible d'utilisation CPU à 60–65 %, avec `behavior` de
   scale-up/down pour lisser les oscillations.
-- **Scan d'images** — Trivy s'exécute en CI avant tout push et **échoue le
+- **Scan d'images**, Trivy s'exécute en CI avant tout push et **échoue le
   pipeline** sur toute vulnérabilité HIGH/CRITICAL corrigeable.
 
 ## 📊 Observabilité
 
-- **Métriques EKS** — le `metrics-server` alimente le HPA (`kubectl top pods`,
+- **Métriques EKS**, le `metrics-server` alimente le HPA (`kubectl top pods`,
   `kubectl get hpa -A`). Chaque service expose `/metrics` (format Prometheus :
   durée des requêtes, compteurs métier) ; les pods portent les annotations
   `prometheus.io/scrape` pour un scrape par un Prometheus/AMP éventuel.
-- **ArgoCD UI** — visualise l'état de synchro (`Synced`/`OutOfSync`) et de santé
+- **ArgoCD UI**, visualise l'état de synchro (`Synced`/`OutOfSync`) et de santé
   (`Healthy`/`Degraded`) de chaque Application, l'arbre des ressources et les
   diffs Git vs cluster. Accès via `make argocd-ui`.
-- **Logs** — `kubectl logs` par pod ; en production, agrégation via Fluent Bit
+- **Logs**, `kubectl logs` par pod ; en production, agrégation via Fluent Bit
   vers CloudWatch Logs ou OpenSearch (voir Roadmap).
-- **Sondes** — chaque service expose `/health` (liveness) et `/ready`
+- **Sondes**, chaque service expose `/health` (liveness) et `/ready`
   (readiness), exploitées par les probes Kubernetes pour le routage et les
   rolling updates.
 
 ## 🔐 Sécurité
 
-- **IRSA & moindre privilège** — pas de credentials AWS statiques dans les pods.
+- **IRSA & moindre privilège**, pas de credentials AWS statiques dans les pods.
   Chaque ServiceAccount mappe un rôle IAM au périmètre minimal (ex. `payments`
   ne peut lire que `…:secret:shop-platform/dev/payments/*`).
-- **Scan Trivy bloquant** — le pipeline CI échoue sur toute vulnérabilité
+- **Scan Trivy bloquant**, le pipeline CI échoue sur toute vulnérabilité
   HIGH/CRITICAL (`exit-code: 1`), empêchant la publication d'images vulnérables.
-- **Images non-root** — Dockerfiles multi-stage ; exécution sous un utilisateur
+- **Images non-root**, Dockerfiles multi-stage ; exécution sous un utilisateur
   dédié non privilégié, `readOnlyRootFilesystem`, `allowPrivilegeEscalation:
   false`, `capabilities: drop ALL`, `seccompProfile: RuntimeDefault`.
-- **ECR durci** — tags **immuables** (traçabilité GitOps), scan à la poussée,
+- **ECR durci**, tags **immuables** (traçabilité GitOps), scan à la poussée,
   chiffrement au repos, politique de cycle de vie des images.
-- **Network policies** — segmentation réseau par service : seuls les flux
+- **Network policies**, segmentation réseau par service : seuls les flux
   explicitement autorisés passent (ex. seul `api-gateway` peut joindre `orders`
   et `payments`) ; le DNS reste permis.
-- **OIDC pour la CI** — GitHub Actions assume un rôle IAM via OIDC (aucune clé
+- **OIDC pour la CI**, GitHub Actions assume un rôle IAM via OIDC (aucune clé
   d'accès longue durée stockée dans le dépôt).
-- **EKS** — endpoint API restreignable par CIDR, nœuds en subnets privés, mode
+- **EKS**, endpoint API restreignable par CIDR, nœuds en subnets privés, mode
   d'authentification API (RBAC géré côté EKS Access Entries).
 
 ## 💰 Coûts & teardown
@@ -282,7 +282,7 @@ pour la configuration de démonstration par défaut :
 | ECR / divers | stockage images, requêtes | ~3 $ |
 | **Total estimé** | | **~320 $/mois** |
 
-> ⚠️ **Avertissement** — Un cluster EKS coûte cher **même inactif** (le control
+> ⚠️ **Avertissement**, Un cluster EKS coûte cher **même inactif** (le control
 > plane est facturé à l'heure, en continu). N'oubliez pas de **tout détruire**
 > après la démonstration. Les NAT Gateways et l'ALB facturent également à
 > l'heure. Les estimations ci-dessus sont approximatives et varient selon la
@@ -308,10 +308,10 @@ make destroy                                # terraform destroy (VPC, EKS, NAT, 
 - **Test de charge & démonstration du HPA** :
 
   ```bash
-  # Terminal 1 — observer l'autoscaling
+  # Terminal 1, observer l'autoscaling
   make watch-hpa            # kubectl get hpa -A -w
 
-  # Terminal 2 — générer la charge
+  # Terminal 2, générer la charge
   make load-test BASE_URL=https://api.shop.example.com
   ```
 

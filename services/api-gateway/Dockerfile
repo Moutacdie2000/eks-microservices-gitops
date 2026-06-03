@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ############################
-# Étape 1 — dépendances
+# Étape 1, dépendances
 ############################
 FROM node:20-alpine AS deps
 WORKDIR /app
@@ -10,7 +10,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 ############################
-# Étape 2 — runtime
+# Étape 2, runtime
 ############################
 FROM node:20-alpine AS runtime
 ENV NODE_ENV=production

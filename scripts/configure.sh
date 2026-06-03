@@ -64,7 +64,7 @@ if [ -f "$ROOT/terraform/backend.tf" ]; then
   echo "  ✓ backend Terraform → terraform/backend.tf"
 fi
 
-# 4) Région (optionnel) — uniquement si différente de la valeur par défaut
+# 4) Région (optionnel), uniquement si différente de la valeur par défaut
 if [ "$AWS_REGION" != "eu-west-3" ]; then
   while IFS= read -r f; do
     [ -z "$f" ] && continue
