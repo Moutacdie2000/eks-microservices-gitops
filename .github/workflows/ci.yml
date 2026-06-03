@@ -6,15 +6,9 @@ name: CI — build, scan & push (GitOps)
 # le cluster. La CI ne fait JAMAIS de `kubectl apply` vers le cluster.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "services/**"
-      - ".github/workflows/ci.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - "services/**"
+  # Pipeline à déclenchement manuel (Actions → « Run workflow »).
+  # Le push d'image vers ECR cible un vrai compte AWS via OIDC.
+  workflow_dispatch:
 
 # Authentification AWS via OIDC (pas de clés statiques).
 permissions:
