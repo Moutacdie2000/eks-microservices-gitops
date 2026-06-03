@@ -1,0 +1,168 @@
+name: CI — build, scan & push (GitOps)
+
+# Pattern GitOps : la CI construit, teste, scanne et pousse les images sur ECR,
+# puis MET À JOUR GIT (bump du tag d'image dans les values Helm). Le déploiement
+# (CD) est entièrement assuré par ArgoCD, qui détecte le commit et synchronise
+# le cluster. La CI ne fait JAMAIS de `kubectl apply` vers le cluster.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/**"
+
+# Authentification AWS via OIDC (pas de clés statiques).
+permissions:
+  contents: write        # nécessaire pour committer le bump de tag
+  id-token: write        # nécessaire pour l'OIDC AWS
+
+env:
+  AWS_REGION: eu-west-3
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}   # ex: 123456789012.dkr.ecr.eu-west-3.amazonaws.com
+  ECR_NAMESPACE: shop-platform
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Build + test + scan Trivy + push ECR, en matrice par service.
+  # ---------------------------------------------------------------------------
+  build-scan-push:
+    name: build/scan/push (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api-gateway, orders, payments, frontend]
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Calculer le tag d'image (sha-<court>)
+        id: meta
+        run: echo "image_tag=sha-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Configurer Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ---- Tests applicatifs (Node ou Python selon le service) ----
+      - name: Setup Node.js
+        if: matrix.service == 'api-gateway' || matrix.service == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Tests Node
+        if: matrix.service == 'api-gateway' || matrix.service == 'frontend'
+        working-directory: services/${{ matrix.service }}
+        run: |
+          npm ci || npm install
+          npm test --if-present
+
+      - name: Setup Python
+        if: matrix.service == 'orders' || matrix.service == 'payments'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Tests Python
+        if: matrix.service == 'orders' || matrix.service == 'payments'
+        working-directory: services/${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -c "import app.main; print('import OK')"
+
+      # ---- Build de l'image (chargée localement pour le scan) ----
+      - name: Build image (local)
+        uses: docker/build-push-action@v5
+        with:
+          context: services/${{ matrix.service }}
+          load: true
+          tags: ${{ matrix.service }}:${{ steps.meta.outputs.image_tag }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      # ---- Scan Trivy : ÉCHEC sur vulnérabilités HIGH/CRITICAL (supply-chain) ----
+      - name: Scan Trivy (bloquant HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ matrix.service }}:${{ steps.meta.outputs.image_tag }}
+          format: table
+          exit-code: "1"            # fait échouer le job si une vuln est trouvée
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library
+
+      # ---- Push ECR uniquement sur main (après merge), via OIDC ----
+      - name: Authentification AWS (OIDC)
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_CI_ROLE_ARN }}   # rôle IAM dédié à la CI
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login ECR
+        if: github.event_name == 'push'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push ECR
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: services/${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_NAMESPACE }}/${{ matrix.service }}:${{ steps.meta.outputs.image_tag }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  # ---------------------------------------------------------------------------
+  # 2) Bump du tag d'image dans les manifestes ArgoCD → commit GitOps.
+  #    Ce commit déclenche la synchronisation par ArgoCD (= le CD réel).
+  # ---------------------------------------------------------------------------
+  bump-gitops:
+    name: bump tag d'image (commit GitOps)
+    needs: build-scan-push
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Installer yq
+        uses: mikefarah/yq@v4.44.1
+
+      - name: Mettre à jour le tag dans les Application ArgoCD
+        env:
+          IMAGE_TAG: ${{ needs.build-scan-push.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          for svc in api-gateway orders payments frontend; do
+            file="argocd/applications/${svc}.yaml"
+            # Le champ helm.values est un bloc YAML multiligne : on le réécrit
+            # avec yq en remplaçant la ligne "tag: ...".
+            tmp="$(mktemp)"
+            yq e '.spec.source.helm.values |= sub("tag: .*", "tag: '"${IMAGE_TAG}"'")' "$file" > "$tmp"
+            mv "$tmp" "$file"
+            echo "Bump ${svc} -> ${IMAGE_TAG}"
+          done
+
+      - name: Committer le bump (déclenche ArgoCD)
+        env:
+          IMAGE_TAG: ${{ needs.build-scan-push.outputs.image_tag }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add argocd/applications/*.yaml
+          if git diff --cached --quiet; then
+            echo "Aucun changement de tag à committer."
+          else
+            git commit -m "ci: bump images vers ${IMAGE_TAG} [skip ci]"
+            git push
+          fi
